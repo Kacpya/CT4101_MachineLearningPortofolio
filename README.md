@@ -14,6 +14,7 @@ By only using information available on a games store page at launch can we predi
 well_received = 1 if positive / (postive + negative) >= 0.80, only for games with atleast 50 reviews.
 
 **Repository contents:** 
+notebooks/milestone3_notebook.ipynb:   Milestone 3: model comparison, tuning, results, visualisations, error analysis, draft conclusion.
 milestone2_notebook.ipynb:      Data audit, cleaning, evaluation design, leakage register, preprocessing pipeline and baseline results.
 download_data.py:               Downloads games.csv from Hugging Face into data/
 requirements.txt:               Python packages
@@ -64,11 +65,75 @@ F1:         0.484
 Recall:     0.750
 Accuracy:   0.494
 
+## Milestone 3: Model comparison
+
+**What the notebook does**
+- Sections 1-9: data audit, cleaning, time-based split, leakage register and feature pipeline (from Milestone 2).
+- Sections 10-12: evaluation protocol, model runner and the two baselines.
+- Sections 13-14: three learned models (logistic regression on all features, random forest, gradient boosting) and tuning.
+- Sections 15-18: results table, visualisations, error analysis and draft conclusion.
+
+**Evaluation protocol**
+- **Time-based split by release date:** oldest 70% train, next 15% validation, newest 15% test.
+- **Primary metric:** PR-AUC for the minority class in the training data (not well received). Also ROC-AUC, precision, recall and F1. Accuracy is for context only.
+- **Tuning:** a small grid per model, using time-ordered cross-validation (`TimeSeriesSplit`) on the training set only.
+- **Threshold:** chosen on the validation set (best F1). The test set is scored once, after all settings are fixed.
+- **Leakage control:** post-release columns (review counts except for building the label, tags, owners, playtime, scores) are never used as features. All preprocessing is fitted on the training data only.
+
+*Results (test set) - Full results and plots are in the notebook*
+
+```
+Model:      Majority class
+PR-AUC:     0.316
+ROC-AUC:    0.500
+Precision:  0.000
+Recall:     0.000
+F1:         0.000
+Accuracy:   0.684
+
+Model:      Logistic Regression (price + genre)
+PR-AUC:     0.415
+ROC-AUC:    0.597
+Precision:  0.357
+Recall:     0.751
+F1:         0.484
+Accuracy:   0.495
+
+Model:      Logistic Regression (all features, tuned)
+PR-AUC:     0.469
+ROC-AUC:    0.652
+Precision:  0.354
+Recall:     0.893
+F1:         0.507
+Accuracy:   0.451
+
+Model:      Random Forest (tuned)
+PR-AUC:     0.473
+ROC-AUC:    0.659
+Precision:  0.384
+Recall:     0.802
+F1:         0.519
+Accuracy:   0.531
+
+Model:      Gradient Boosting (tuned)
+PR-AUC:     0.491
+ROC-AUC:    0.672
+Precision:  0.393
+Recall:     0.760
+F1:         0.518
+Accuracy:   0.554
+```
+
+**Current best model:** gradient boosting (scikit-learn `HistGradientBoostingClassifier`). Its lead over the other learned models is small.
+
+**Main limitation:** at the chosen threshold the best model wrongly flags 54% of well-received games, most often cheap games, indie and action games and games from first-time developers.
+
 *Reproducibility*
  - Random seed is fixed (SEED = 42)
  - Raw file never edited, every step is done in the code
  - Package versions are in requirements.txt and printed at the top of the notebook
 
 **AI Assistance**
-- Github copilot was used for assisting with code, fixing bugs and writing comments on the code.
-- Claude was used to assist me with the structure of the data audit and what steps I should take.
+- Github copilot was used for assisting with writing the python code, fixing bugs and writing comments on the code.
+- Claude (Anthropic) was used to assist me with the structure of the notebook when I was stuck on what steps I should take next. It also helped me understand my results when I was stuck.
+- I ran all code myself, checked the outputs and wrote + structured the Markdowns. The research question, dataset, target definition and evaluation plan come from my own Milestone 1 proposal.
